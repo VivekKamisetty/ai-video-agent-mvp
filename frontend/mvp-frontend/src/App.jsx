@@ -2,17 +2,39 @@ import { useState } from 'react'
 
 export default function App() {
   const [query, setQuery] = useState('')
-  const [videoUrl, setVideoUrl] = useState('')
+  const [gptResponse, setGptResponse] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
 
-  // Placeholder function simulating video generation flow
-  const handleGenerateVideo = async () => {
+  // This function will ONLY call /generate-text
+  // and display the GPT output (no video logic).
+  const handleGenerateExplanation = async () => {
+    if (!query.trim()) return
     setIsLoading(true)
-    // In the future, replace this with an actual fetch call to your backend
-    setTimeout(() => {
-      setVideoUrl('https://example.com/fake-video-link.mp4')
+    setErrorMsg('')
+    setGptResponse('')
+
+    try {
+      // Replace with your actual backend URL if needed (e.g., your server IP or domain)
+      const res = await fetch('http://127.0.0.1:8000/generate-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query })
+      })
+
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status} ${res.statusText}`)
+      }
+
+      const data = await res.json()
+      // Expecting data.text from your /generate-text endpoint
+      setGptResponse(data.text || '')
+    } catch (err) {
+      console.error(err)
+      setErrorMsg('An error occurred while generating the explanation.')
+    } finally {
       setIsLoading(false)
-    }, 2500)
+    }
   }
 
   return (
@@ -31,10 +53,10 @@ export default function App() {
       <main className="flex-grow flex flex-col justify-center items-center px-4">
         <div className="text-center max-w-2xl mb-12">
           <h2 className="text-white text-4xl sm:text-5xl font-extrabold mb-4 drop-shadow">
-            Instantly Turn Your Queries into AI-Generated Videos
+          Instantly Turn Your Queries into AI-Generated Videos
           </h2>
           <p className="text-white/90 text-lg sm:text-xl">
-            Explain@AI transforms your ideas, questions, and topics into engaging videos at the click of a button.
+          Explain@AI transforms your ideas, questions, and topics into engaging videos at the click of a button.
           </p>
         </div>
 
@@ -54,35 +76,36 @@ export default function App() {
           </div>
           <button
             className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
-            onClick={handleGenerateVideo}
+            onClick={handleGenerateExplanation}
             disabled={isLoading || !query.trim()}
           >
-            {isLoading ? 'Generating...' : 'Generate Video'}
+            {isLoading ? 'Generating...' : 'Generate Explanation'}
           </button>
         </div>
 
-        {/* VIDEO RESULT */}
+        {/* LOADING / ERROR STATE */}
         <div className="mt-8 w-full max-w-lg">
           {isLoading && (
             <div className="bg-white/80 p-4 rounded-xl shadow-lg text-center animate-pulse">
               <p className="text-gray-700">Processing your request, please wait...</p>
             </div>
           )}
-          {!isLoading && videoUrl && (
-            <div className="bg-white p-4 rounded-xl shadow-lg">
-              <h3 className="font-bold text-gray-800 mb-2">Your Video:</h3>
-              {/* Link or embed your video here */}
-              <a
-                href={videoUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-indigo-600 hover:underline"
-              >
-                Click to watch your AI-generated video
-              </a>
+          {errorMsg && (
+            <div className="bg-red-100 p-4 rounded-xl shadow-md text-red-600 mt-4">
+              {errorMsg}
             </div>
           )}
         </div>
+
+        {/* AI EXPLANATION RESULT */}
+        {!isLoading && gptResponse && (
+          <div className="mt-8 w-full max-w-lg bg-white p-4 rounded-xl shadow-lg">
+            <h3 className="font-bold text-gray-800 mb-2">Explanation:</h3>
+            <p className="text-gray-700 whitespace-pre-line">
+              {gptResponse}
+            </p>
+          </div>
+        )}
       </main>
 
       {/* FOOTER */}
